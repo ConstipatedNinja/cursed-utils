@@ -11,37 +11,65 @@
 usage() {
   echo "Usage: $0 --namespace <namespace> --postgres-config <path-to-postgres-yaml> --jfrog-values <path-to-jfrog-values-yaml> --artifactory-replicas <X> --xray-replicas <Y>"
   echo "  --namespace            The Kubernetes namespace to deploy resources into."
+  echo "  --ingress-namespace    Ingress namespace, defaults to ingress-ngnix."
+  echo "  --ingress-ip           Ingress IP (if it fails to grab the right one)"
   echo "  --postgres-config      Path to the PostgreSQL configuration file."
   echo "  --jfrog-values         Path to the JFrog Platform Helm values file."
   echo "  --system-yaml          Path to a system.yaml override file."
   echo "  --binarystore-xml      Path to a binarystore.xml override file."
   echo "  --artifactory-replicas Number of Artifactory replicas to deploy."
   echo "  --xray-replicas        Number of Xray replicas to deploy."
+  echo "  --disable-ssl          Skip SSL termination."
+  echo "  --ssl-cert             Path to SSL .crt or .pem or what have you."
+  echo "  --ssl-key              Path to SSL key."
   exit 1
 }
-script_dir=$(dirname "$0")
 # Parse Arguments
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     --namespace) namespace="$2"; shift ;;
+    --ingress-namespace) opt_ingress_namespace="$2"; shift ;;
+    --ingress-ip) opt_ingress_ip="$2"; shift ;;
     --postgres-config) postgres_config="$2"; shift ;;
-    --jfrog-values) jfrog_values="$2"; shift ;;
+    --jfrog-values) jfrog_values="$2"; shift 
     --artifactory-replicas) artifactory_replicas="$2"; shift ;;
     --xray-replicas) xray_replicas="$2"; shift ;;
     --system-yaml) system_yaml="$2"; shift ;;
     --binarystore-xml) binarystore_xml="$2"; shift ;;
+    --disable-ssl) opt_disable_ssl=1; shift ;;
+    --ssl-cert) ssl_cert="$2"; shift ;;
+    --ssl-key) ssl_key="$2"; shift ;;
     *) echo "Unknown parameter: $1"; usage ;;
   esac
   shift
 done
+## Default variables section
+script_dir=$(dirname "$0")
+unset disable_ssl; disable_ssl=${opt_disable_ssl:-0}
+unset ingress_namespace; ingress_namespace=${opt_ingress_namespace:-"ingress-nginx"}
 
+## "Bail-out" section
 if [ -z "$namespace" ] || [ -z "$postgres_config" ] || [ -z "$jfrog_values" ]; then
   echo "Error: Missing required arguments. Namespace, postgres config, and jfrog values are required."
   usage
 fi
 
+## Variable-determining section
+# Get the ingress controller's external IP unless provided
+unset ingress_ip; if [ -z "$opt_ingress_ip" ]; then 
+  ingress_ip=`kubectl get svc -n $ingress_namespace ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'`
+else
+  ingress_ip=$opt_ingress_ip
+fi
+
+
+
 echo "Creating Kubernetes namespace: $namespace"
 kubectl create namespace "$namespace"
+if [ $disable_ssl -eq 0 ]; then
+  echo "Saving SSL certs as ${namespace}-ssl in the namespace"
+  kubectl create secret tls ${namespace}-ssl --cert=$ssl_cert --key=$ssl_key --namespace $namespace
+  
 echo "Deploying PostgreSQL using configuration: $postgres_config"
 kubectl apply -f "$postgres_config" --namespace "$namespace"
 
