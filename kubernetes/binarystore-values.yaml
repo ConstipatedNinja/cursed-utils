@@ -1,0 +1,6 @@
+artifactory:
+  copyOnEveryStartup:
+    - source: /artifactory_bootstrap/binarystore.xml
+      target: etc/artifactory
+  persistence:
+    customBinarystoreXmlSecret: "custom-binarystore"
