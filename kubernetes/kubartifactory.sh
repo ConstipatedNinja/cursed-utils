@@ -19,7 +19,7 @@ usage() {
   echo "  --xray-replicas        Number of Xray replicas to deploy."
   exit 1
 }
-
+script_dir=$(dirname "$0")
 # Parse Arguments
 while [[ "$#" -gt 0 ]]; do
   case $1 in
@@ -55,6 +55,7 @@ else
 fi
 if [ ! -z "$binarystore_xml" ]; then
   kubectl -n $namespace create secret generic custom-binarystore --from-file=$binarystore_xml
+  helm upgrade --install artifactory --namespace artifactory jfrog/artifactory -f $script_dir/binarystore-values.yaml
 fi
 # Deploy JFrog Platform
 echo "Deploying JFrog Platform in namespace: $namespace"
