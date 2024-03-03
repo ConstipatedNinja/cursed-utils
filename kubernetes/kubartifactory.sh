@@ -31,7 +31,7 @@ while [[ "$#" -gt 0 ]]; do
     --ingress-namespace) opt_ingress_namespace="$2"; shift ;;
     --ingress-ip) opt_ingress_ip="$2"; shift ;;
     --postgres-config) postgres_config="$2"; shift ;;
-    --jfrog-values) jfrog_values="$2"; shift 
+    --jfrog-values) jfrog_values="$2"; shift ;;
     --artifactory-replicas) artifactory_replicas="$2"; shift ;;
     --xray-replicas) xray_replicas="$2"; shift ;;
     --system-yaml) system_yaml="$2"; shift ;;
