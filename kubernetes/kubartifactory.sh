@@ -13,7 +13,7 @@ usage() {
   echo "  --namespace            The Kubernetes namespace to deploy resources into."
   echo "  --ingress-namespace    Ingress namespace, defaults to ingress-ngnix."
   echo "  --ingress-ip           Ingress IP (if it fails to grab the right one)"
-  echo "  --postgres-config      Path to the PostgreSQL configuration file."
+  echo "  --postgres-values      Path to the PostgreSQL configuration file."
   echo "  --jfrog-values         Path to the JFrog Platform Helm values file."
   echo "  --system-yaml          Path to a system.yaml override file."
   echo "  --binarystore-xml      Path to a binarystore.xml override file."
@@ -30,7 +30,7 @@ while [[ "$#" -gt 0 ]]; do
     --namespace) namespace="$2"; shift ;;
     --ingress-namespace) opt_ingress_namespace="$2"; shift ;;
     --ingress-ip) opt_ingress_ip="$2"; shift ;;
-    --postgres-config) postgres_config="$2"; shift ;;
+    --postgres-values) postgres_values="$2"; shift ;;
     --jfrog-values) jfrog_values="$2"; shift ;;
     --artifactory-replicas) artifactory_replicas="$2"; shift ;;
     --xray-replicas) xray_replicas="$2"; shift ;;
@@ -43,13 +43,13 @@ while [[ "$#" -gt 0 ]]; do
   esac
   shift
 done
-## Default variables section
+## Boring default variable section
 script_dir=$(dirname "$0")
 unset disable_ssl; disable_ssl=${opt_disable_ssl:-0}
 unset ingress_namespace; ingress_namespace=${opt_ingress_namespace:-"ingress-nginx"}
 
 ## "Bail-out" section
-if [ -z "$namespace" ] || [ -z "$postgres_config" ] || [ -z "$jfrog_values" ]; then
+if [ -z "$namespace" ] || [ -z "$postgres_values" ] || [ -z "$jfrog_values" ]; then
   echo "Error: Missing required arguments. Namespace, postgres config, and jfrog values are required."
   usage
 fi
@@ -70,8 +70,8 @@ if [ $disable_ssl -eq 0 ]; then
   echo "Saving SSL certs as ${namespace}-ssl in the namespace"
   kubectl create secret tls ${namespace}-ssl --cert=$ssl_cert --key=$ssl_key --namespace $namespace
   
-echo "Deploying PostgreSQL using configuration: $postgres_config"
-kubectl apply -f "$postgres_config" --namespace "$namespace"
+echo "Deploying PostgreSQL using configuration: $postgres_values"
+kubectl apply -f "$postgres_values" --namespace "$namespace"
 
 # Modify JFrog Helm Values with Dynamic Replica Counts
 if [ -z "$artifactory_replicas" ] || [ -z "$xray_replicas" ]; then
@@ -87,6 +87,6 @@ if [ ! -z "$binarystore_xml" ]; then
 fi
 # Deploy JFrog Platform
 echo "Deploying JFrog Platform in namespace: $namespace"
-helm install jfrog-platform jfrog/artifactory-jcr -f "$jfrog_values" --namespace "$namespace"
+helm install jfrog-platform jfrog/jfrog-platform -f "$jfrog_values" --namespace "$namespace"
 
 echo "Deployment in $namespace is complete!"
