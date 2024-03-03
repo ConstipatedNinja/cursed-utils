@@ -13,6 +13,8 @@ usage() {
   echo "  --namespace            The Kubernetes namespace to deploy resources into."
   echo "  --postgres-config      Path to the PostgreSQL configuration file."
   echo "  --jfrog-values         Path to the JFrog Platform Helm values file."
+  echo "  --system-yaml          Path to a system.yaml override file."
+  echo "  --binarystore-xml      Path to a binarystore.xml override file."
   echo "  --artifactory-replicas Number of Artifactory replicas to deploy."
   echo "  --xray-replicas        Number of Xray replicas to deploy."
   exit 1
@@ -26,6 +28,8 @@ while [[ "$#" -gt 0 ]]; do
     --jfrog-values) jfrog_values="$2"; shift ;;
     --artifactory-replicas) artifactory_replicas="$2"; shift ;;
     --xray-replicas) xray_replicas="$2"; shift ;;
+    --system-yaml) system_yaml="$2"; shift ;;
+    --binarystore-xml) binarystore_xml="$2"; shift ;;
     *) echo "Unknown parameter: $1"; usage ;;
   esac
   shift
@@ -48,6 +52,9 @@ else
   echo "Setting Artifactory replicas to $artifactory_replicas and Xray replicas to $xray_replicas"
   sed -i "s/artifactory.replicaCount:.*/artifactory.replicaCount: $artifactory_replicas/" "$jfrog_values"
   sed -i "s/xray.replicaCount:.*/xray.replicaCount: $xray_replicas/" "$jfrog_values"
+fi
+if [ ! -z "$binarystore_xml" ]; then
+  kubectl -n $namespace create secret generic custom-binarystore --from-file=$binarystore_xml
 fi
 # Deploy JFrog Platform
 echo "Deploying JFrog Platform in namespace: $namespace"
