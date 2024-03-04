@@ -10,18 +10,18 @@
 
 usage() {
   echo "Usage: $0 --namespace <namespace> --postgres-config <path-to-postgres-yaml> --jfrog-values <path-to-jfrog-values-yaml> --artifactory-replicas <X> --xray-replicas <Y>"
-  echo "  --namespace            The Kubernetes namespace to deploy resources into."
-  echo "  --ingress-namespace    Ingress namespace, defaults to ingress-ngnix."
-  echo "  --ingress-ip           Ingress IP (if it fails to grab the right one)"
-  echo "  --postgres-values      Path to the PostgreSQL configuration file."
-  echo "  --jfrog-values         Path to the JFrog Platform Helm values file."
-  echo "  --system-yaml          Path to a system.yaml override file."
-  echo "  --binarystore-xml      Path to a binarystore.xml override file."
-  echo "  --artifactory-replicas Number of Artifactory replicas to deploy."
-  echo "  --xray-replicas        Number of Xray replicas to deploy."
-  echo "  --disable-ssl          Skip SSL termination."
-  echo "  --ssl-cert             Path to SSL .crt or .pem or what have you."
-  echo "  --ssl-key              Path to SSL key."
+  echo "  --namespace               The Kubernetes namespace to deploy resources into."
+  echo "  --ingress-namespace       Ingress namespace, defaults to ingress-ngnix."
+  echo "  --ingress-ip              Ingress IP (if it fails to grab the right one)"
+  echo "  --postgres-values         Path to the PostgreSQL configuration file."
+  echo "  --jfrog-values            Path to the JFrog Platform Helm values file."
+  echo "  --artifactory-system-yaml Path to the Artifactory system.yaml override file."
+  echo "  --binarystore-xml         Path to a binarystore.xml override file."
+  echo "  --artifactory-replicas    Number of Artifactory replicas to deploy."
+  echo "  --xray-replicas           Number of Xray replicas to deploy."
+  echo "  --disable-ssl             Skip SSL termination."
+  echo "  --ssl-cert                Path to SSL .crt or .pem or what have you."
+  echo "  --ssl-key                 Path to SSL key."
   exit 1
 }
 # Parse Arguments
@@ -34,7 +34,7 @@ while [[ "$#" -gt 0 ]]; do
     --jfrog-values) jfrog_values="$2"; shift ;;
     --artifactory-replicas) artifactory_replicas="$2"; shift ;;
     --xray-replicas) xray_replicas="$2"; shift ;;
-    --system-yaml) system_yaml="$2"; shift ;;
+    --artifactory-system-yaml) artifactory_system_yaml="$2"; shift ;;
     --binarystore-xml) binarystore_xml="$2"; shift ;;
     --disable-ssl) opt_disable_ssl=1; shift ;;
     --ssl-cert) ssl_cert="$2"; shift ;;
@@ -85,12 +85,12 @@ if [ ! -z "$binarystore_xml" ]; then
   kubectl -n $namespace create secret generic custom-binarystore --from-file=$binarystore_xml
   helm upgrade --install artifactory --namespace artifactory jfrog/jfrog-platform -f "$script_dir/binarystore-values.yaml"
 fi
-if [ ! -z "$system_yaml" ]; then
+if [ ! -z "$artifactory_system_yaml" ]; then
   # Make sure this is in the values.yaml:
   #systemYamlOverride:
-  #  existingSecret: system-yaml
+  #  existingSecret: artifactory-system-yaml
   #  dataKey: "$system_yaml" # but fill this in for realsies
-  kubectl create secret generic system-yaml --from-file "$system_yaml" --namespace "$namespace"
+  kubectl create secret generic artifactory-system-yaml --from-file "$artifactory_system_yaml" --namespace "$namespace"
 # Deploy JFrog Platform
 echo "Deploying JFrog Platform in namespace: $namespace"
 helm install jfrog-platform jfrog/jfrog-platform -f "$jfrog_values" --namespace "$namespace"
