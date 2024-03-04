@@ -68,7 +68,7 @@ echo "Creating Kubernetes namespace: $namespace"
 kubectl create namespace "$namespace"
 if [ $disable_ssl -eq 0 ]; then
   echo "Saving SSL certs as ${namespace}-ssl in the namespace"
-  kubectl create secret tls ${namespace}-ssl --cert=$ssl_cert --key=$ssl_key --namespace $namespace
+  kubectl create secret tls "${namespace}-ssl" --cert="$ssl_cert" --key="$ssl_key" --namespace "$namespace"
   
 echo "Deploying PostgreSQL using configuration: $postgres_values"
 kubectl apply -f "$postgres_values" --namespace "$namespace"
@@ -83,8 +83,14 @@ else
 fi
 if [ ! -z "$binarystore_xml" ]; then
   kubectl -n $namespace create secret generic custom-binarystore --from-file=$binarystore_xml
-  helm upgrade --install artifactory --namespace artifactory jfrog/artifactory -f $script_dir/binarystore-values.yaml
+  helm upgrade --install artifactory --namespace artifactory jfrog/jfrog-platform -f "$script_dir/binarystore-values.yaml"
 fi
+if [ ! -z "$system_yaml" ]; then
+  # Make sure this is in the values.yaml:
+  #systemYamlOverride:
+  #  existingSecret: system-yaml
+  #  dataKey: "$system_yaml" # but fill this in for realsies
+  kubectl create secret generic system-yaml --from-file "$system_yaml" --namespace "$namespace"
 # Deploy JFrog Platform
 echo "Deploying JFrog Platform in namespace: $namespace"
 helm install jfrog-platform jfrog/jfrog-platform -f "$jfrog_values" --namespace "$namespace"
