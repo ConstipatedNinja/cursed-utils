@@ -1,4 +1,4 @@
 # If overriding the systemYaml of the values.yaml, make sure this is part of your values.yaml for artifactory
 systemYamlOverride:
-  existingSecret: system-yaml
+  existingSecret: artifactory-system-yaml
   dataKey: "$system_yaml" #put the path to the system.yaml file
